@@ -4,12 +4,6 @@ import { AppContext } from '../context/AppContext';
 import colors from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 
-import React, { useState, useContext } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { AppContext } from '../context/AppContext';
-import colors from '../theme/colors';
-import { Ionicons } from '@expo/vector-icons';
-
 export default function LoginScreen({ navigation }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');

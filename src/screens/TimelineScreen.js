@@ -7,31 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 export default function TimelineScreen() {
   const { posts, addPost, toggleLikePost, addComment, user } = useContext(AppContext);
   const [content, setContent] = useState('');
+  const [mediaUri, setMediaUri] = useState(null);
   const [cmtTexts, setCmtTexts] = useState({});
 
-  const handlePost = () => { if (content.trim()) { addPost(content); setContent(''); } };
-  const handleCmt = (id) => {
-    const txt = cmtTexts[id];
-    if (txt?.trim()) { addComment(id, txt); setCmtTexts(p => ({ ...p, [id]: '' })); }
-  };
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#EBEFF4' }}>
-      <View style={styles.header}>
-        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>Nhật ký Kini</Text>
-        <Ionicons name="camera" size={24} color="#fff" />
-      </View>
-      <FlatList
-        data={posts} keyExtractor={item => item.id}
-        ListHeaderComponent={
-          <View style={styles.composer}>
-            <View style={styles.av}><Text style={{ color: '#fff', fontWeight: 'bold' }}>{user?.avatar || 'ME'}</Text></View>
-            <TextInput
-              style={{ flex: 1, fontSize: 15, maxHeight: 60 }} placeholder="Hôm nay bạn thế nào?" placeholderTextColor={colors.textGray}
-              value={content} onChangeText={setContent} multiline
-            />
-            {content.trim() ? <TouchableOpacity style={styles.pBtn} onPress={handlePost}><Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Đăng</Text></TouchableOpacity> : null}
-          </View>
   const handlePickMedia = async () => {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -59,6 +37,57 @@ export default function TimelineScreen() {
       setMediaUri(null);
     }
   };
+
+  const handleCmt = (id) => {
+    const txt = cmtTexts[id];
+    if (txt?.trim()) {
+      addComment(id, txt);
+      setCmtTexts(p => ({ ...p, [id]: '' }));
+    }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#EBEFF4' }}>
+      <View style={styles.header}>
+        <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>Nhật ký Kini</Text>
+        <Ionicons name="camera" size={24} color="#fff" />
+      </View>
+      <FlatList
+        data={posts}
+        keyExtractor={item => item.id}
+        ListHeaderComponent={
+          <View style={styles.composer}>
+            <View style={styles.av}><Text style={{ color: '#fff', fontWeight: 'bold' }}>{user?.avatar || 'ME'}</Text></View>
+            <View style={{ flex: 1 }}>
+              <TextInput
+                style={{ fontSize: 15, maxHeight: 60, color: colors.textDark }}
+                placeholder="Hôm nay bạn thế nào?"
+                placeholderTextColor={colors.textGray}
+                value={content}
+                onChangeText={setContent}
+                multiline
+              />
+              {mediaUri ? (
+                <View style={{ marginTop: 8, position: 'relative', width: 80, height: 80 }}>
+                  <Image source={{ uri: mediaUri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                  <TouchableOpacity
+                    onPress={() => setMediaUri(null)}
+                    style={{ position: 'absolute', top: -6, right: -6, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, padding: 2 }}
+                  >
+                    <Ionicons name="close" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+            <TouchableOpacity onPress={handlePickMedia} style={{ marginHorizontal: 8 }}>
+              <Ionicons name="image-outline" size={24} color={colors.textGray} />
+            </TouchableOpacity>
+            {content.trim() || mediaUri ? (
+              <TouchableOpacity style={styles.pBtn} onPress={handlePost}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Đăng</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
         }
         renderItem={({ item }) => {
           const liked = item.likes.includes('me');
