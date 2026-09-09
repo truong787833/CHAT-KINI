@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Kini",
+    "slug": "kini-chat",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "plugins": [
+      "expo-status-bar"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a0840547-5591-4525-b9b0-8093000e994d"
+      }
+    }
+  }
+}
