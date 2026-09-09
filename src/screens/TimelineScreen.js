@@ -32,6 +32,33 @@ export default function TimelineScreen() {
             />
             {content.trim() ? <TouchableOpacity style={styles.pBtn} onPress={handlePost}><Text style={{ color: '#fff', fontSize: 12, fontWeight: 'bold' }}>Đăng</Text></TouchableOpacity> : null}
           </View>
+  const handlePickMedia = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Quyền truy cập', 'Bạn cần cấp quyền truy cập thư viện!');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        allowsMultipleSelection: false,
+        quality: 0.8,
+      });
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        setMediaUri(res.assets[0].uri);
+      }
+    } catch (e) {
+      Alert.alert('Lỗi', 'Không thể chọn ảnh/video.');
+    }
+  };
+
+  const handlePost = () => {
+    if (content.trim() || mediaUri) {
+      addPost(content, mediaUri);
+      setContent('');
+      setMediaUri(null);
+    }
+  };
         }
         renderItem={({ item }) => {
           const liked = item.likes.includes('me');

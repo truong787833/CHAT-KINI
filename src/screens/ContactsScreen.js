@@ -17,13 +17,16 @@ export default function ContactsScreen({ navigation }) {
   };
 
   const handleAdd = () => {
-    if (!newName.trim() || !newPhone.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng điền đủ Tên và SĐT!');
+    if (!newPhone.trim()) {
+      Alert.alert('Lỗi', 'Vui lòng nhập số điện thoại!');
       return;
     }
-    if (addContact(newName, newPhone).success) {
-      Alert.alert('Thành công', `Đã kết bạn với ${newName}!`);
-      setNewName(''); setNewPhone(''); setShowAdd(false);
+    const res = addContact(newPhone);
+    if (res.success) {
+      Alert.alert('Thành công', `Đã tìm thấy và kết bạn với ${res.name}!`);
+      setNewPhone(''); setShowAdd(false);
+    } else {
+      Alert.alert('Thông báo', res.message);
     }
   };
 
@@ -64,10 +67,9 @@ export default function ContactsScreen({ navigation }) {
 
       {showAdd && (
         <View style={styles.add}>
-          <Text style={styles.addT}>Thêm bạn mới</Text>
-          <TextInput style={styles.input} placeholder="Tên" value={newName} onChangeText={setNewName} placeholderTextColor={colors.textGray} />
-          <TextInput style={styles.input} placeholder="Số điện thoại" value={newPhone} onChangeText={setNewPhone} keyboardType="phone-pad" placeholderTextColor={colors.textGray} />
-          <TouchableOpacity style={styles.btn} onPress={handleAdd}><Text style={styles.btnT}>KẾT BẠN</Text></TouchableOpacity>
+          <Text style={styles.addT}>Thêm bạn mới bằng Số điện thoại</Text>
+          <TextInput style={styles.input} placeholder="Nhập số điện thoại cần tìm..." value={newPhone} onChangeText={setNewPhone} keyboardType="phone-pad" placeholderTextColor={colors.textGray} />
+          <TouchableOpacity style={styles.btn} onPress={handleAdd}><Text style={styles.btnT}>TÌM & KẾT BẠN</Text></TouchableOpacity>
         </View>
       )}
 
