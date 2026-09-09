@@ -53,7 +53,9 @@ export const AppProvider = ({ children }) => {
     return { success: true, message: 'Đặt lại mật khẩu thành công! Hãy đăng nhập lại bằng mật khẩu mới.' };
   };
 
-  const logout = () => setUser(null);
+  const updateUserProfile = (updatedData) => {
+    setUser(prev => ({ ...prev, ...updatedData }));
+  };
 
   const sendMessage = (chatId, text) => {
     if (!text.trim()) return;
@@ -110,7 +112,7 @@ export const AppProvider = ({ children }) => {
   };
 
   return (
-    <AppContext.Provider value={{ user, chats, contacts, posts, isTyping, login, register, resetPassword, logout, sendMessage, clearUnread, addPost, toggleLikePost, addComment, addContact }}>
+    <AppContext.Provider value={{ user, chats, contacts, posts, isTyping, login, register, resetPassword, logout, updateUserProfile, sendMessage, clearUnread, addPost, toggleLikePost, addComment, addContact }}>
       {children}
     </AppContext.Provider>
   );

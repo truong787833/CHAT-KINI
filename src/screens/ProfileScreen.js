@@ -1,21 +1,68 @@
-import React, { useContext } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Alert } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, Alert, ScrollView, Modal, TextInput, Share } from 'react-native';
 import { AppContext } from '../context/AppContext';
 import colors from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function ProfileScreen() {
-  const { user, logout } = useContext(AppContext);
+  const { user, logout, updateUserProfile } = useContext(AppContext);
+
+  const [modalType, setModalType] = useState(null);
+  const [editName, setEditName] = useState(user?.name || '');
+  const [editBio, setEditBio] = useState(user?.bio || '');
+  const [editAvatar, setEditAvatar] = useState(user?.avatar || 'ME');
+
+  const [allowStrangerMessage, setAllowStrangerMessage] = useState(true);
+  const [showOnlineStatus, setShowOnlineStatus] = useState(true);
+
+  const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Đăng xuất',
-      'Bạn có chắc chắn muốn đăng xuất khỏi Kini?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        { text: 'Đăng xuất', style: 'destructive', onPress: logout }
-      ]
-    );
+    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Đăng xuất', style: 'destructive', onPress: logout }
+    ]);
+  };
+
+  const handleSaveProfile = () => {
+    if (!editName.trim()) {
+      Alert.alert('Lỗi', 'Tên không được để trống!');
+      return;
+    }
+    updateUserProfile({
+      name: editName,
+      bio: editBio,
+      avatar: editAvatar.substring(0, 3).toUpperCase()
+    });
+    setModalType(null);
+    Alert.alert('Thành công', 'Đã cập nhật thông tin cá nhân!');
+  };
+
+  const handleShareQR = async () => {
+    try {
+      await Share.share({
+        message: `Kết bạn với tôi trên KINI Chat! SĐT: ${user?.phone} - Mã QR: KINI_USER_${user?.phone}`,
+      });
+    } catch (error) {
+      Alert.alert('Lỗi', 'Không thể chia sẻ mã QR.');
+    }
+  };
+
+  const handleCheckForUpdate = () => {
+    setCheckingUpdate(true);
+    setTimeout(() => {
+      setCheckingUpdate(false);
+      setUpdateAvailable(true);
+      Alert.alert('Thông báo', 'Đã tìm thấy phiên bản KINI mới nhất (v1.8.47 - Build 16)! Sẵn sàng cài đặt.');
+    }, 1200);
+  };
+
+  const handleStartUpdate = () => {
+    Alert.alert('Cập nhật', 'Đang tải xuống bản KINI mới từ GitHub và chuẩn bị cài đặt...', [
+      { text: 'Hủy', style: 'cancel' },
+      { text: 'Cài đặt ngay', onPress: () => { Alert.alert('Thành công', 'Đã cập nhật ứng dụng thành công!'); setUpdateAvailable(false); } }
+    ]);
   };
 
   return (
@@ -29,6 +76,41 @@ export default function ProfileScreen() {
         <Text style={styles.phone}>{user?.phone || '0901234567'}</Text>
         <Text style={styles.bio}>{user?.bio || 'Sống là chia sẻ và kết nối!'}</Text>
       </View>
+          <TouchableOpacity 
+            style={styles.editProfileBtn}
+            onPress={() => {
+              setEditName(user?.name || '');
+              setEditBio(user?.bio || '');
+              setEditAvatar(user?.avatar || 'ME');
+              setModalType('edit');
+            }}
+          >
+            <Ionicons name="pencil-outline" size={16} color={colors.primary} />
+            <Text style={styles.editProfileText}>Chỉnh sửa thông tin</Text>
+        <TouchableOpacity style={styles.menuItem} onPress={() => setModalType('account')}>
+          <Ionicons name="shield-checkmark-outline" size={22} color={colors.primary} style={styles.menuIcon} />
+          <Text style={styles.menuText}>Tài khoản và bảo mật</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => setModalType('privacy')}>
+          <Ionicons name="lock-closed-outline" size={22} color={colors.primary} style={styles.menuIcon} />
+          <Text style={styles.menuText}>Quyền riêng tư</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => setModalType('qr')}>
+          <Ionicons name="qr-code-outline" size={22} color={colors.primary} style={styles.menuIcon} />
+          <Text style={styles.menuText}>Mã QR của tôi</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem} onPress={() => setModalType('update')}>
+          <Ionicons name="cloud-download-outline" size={22} color={colors.primary} style={styles.menuIcon} />
+          <Text style={styles.menuText}>Cập nhật ứng dụng (GitHub)</Text>
+          <Ionicons name="chevron-forward" size={18} color={colors.textGray} />
+        </TouchableOpacity>
+          </TouchableOpacity>
 
       {/* Options List */}
       <View style={styles.menu}>
