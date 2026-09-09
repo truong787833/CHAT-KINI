@@ -1,4 +1,4 @@
-name: Build Android APK via EAS
+name: Build Android APK Natively on GitHub Actions
 
 on:
   push:
@@ -10,8 +10,9 @@ permissions:
 
 jobs:
   build:
-    name: Install and Build
+    name: Build Android APK (Native Gradle)
     runs-on: ubuntu-latest
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -20,79 +21,60 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
 
-      - name: Install Dependencies and EAS CLI
-        run: |
-          npm install
-          npm install -g eas-cli
+      - name: Install dependencies
+        run: npm ci || npm install
 
-      - name: Build on EAS and Download APK
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Generate Native Android Folder
+        run: npx expo prebuild --platform android --clean
+
+      - name: Build Debug/Release APK with Gradle
+        working-directory: ./android
         run: |
-          echo "Triggering EAS build without --wait (async mode to prevent blocking)..."
-          BUILD_OUTPUT=$(npx eas build --platform android --profile preview --non-interactive --no-wait 2>&1)
-          echo "$BUILD_OUTPUT"
-          
-          BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -oE 'https://expo\.dev/accounts/.*/builds/[a-f0-9-]+' | head -n 1 | awk -F'/' '{print $NF}')
-          
-          if [ -z "$BUILD_ID" ]; then
-            echo "Failed to get build ID from direct output, listing recent builds..."
-            BUILD_RAW=$(eas build:list --platform android --limit 1 --json 2>/dev/null || echo "[]")
-            BUILD_JSON=$(echo "$BUILD_RAW" | grep -o '\[.*\]' || echo "[]")
-            BUILD_ID=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.id || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Prepare APK Artifact
+        run: |
+          mkdir -p release_output
+          # Copy debug APK (or assembleRelease if signing key is provided)
+          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk release_output/KINI-Chat.apk
+          elif [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk release_output/KINI-Chat.apk
+          else
+            find android/app/build/outputs/apk/ -name "*.apk" -exec cp {} release_output/KINI-Chat.apk \;
           fi
           
-          echo "Target Build ID: $BUILD_ID"
-          if [ -z "$BUILD_ID" ]; then
-            echo "Error: Could not retrieve EAS Build ID!"
+          if [ ! -f "release_output/KINI-Chat.apk" ]; then
+            echo "Error: APK build failed to output file!"
             exit 1
           fi
-          
-          echo "Polling EAS build status (checking every 30 seconds)..."
-          STATUS="in-queue"
-          while [ "$STATUS" = "in-queue" ] || [ "$STATUS" = "in-progress" ]; do
-            sleep 30
-            BUILD_VIEW_RAW=$(eas build:view "$BUILD_ID" --json 2>/dev/null || echo "{}")
-            BUILD_VIEW_JSON=$(echo "$BUILD_VIEW_RAW" | grep -o '{.*}' | head -n 1 || echo "{}")
-            
-            STATUS=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data.status || 'in-progress'); } catch(e) { console.log('in-progress'); }" "$BUILD_VIEW_JSON")
-            echo "Current build status: $STATUS"
-            
-            if [ "$STATUS" = "errored" ] || [ "$STATUS" = "canceled" ]; then
-              echo "Error: EAS Build failed or was canceled with status: $STATUS"
-              exit 1
-            fi
-          done
-          
-          echo "Build completed with status: $STATUS. Fetching artifact URL..."
-          BUILD_VIEW_RAW=$(eas build:view "$BUILD_ID" --json 2>/dev/null || echo "{}")
-          BUILD_VIEW_JSON=$(echo "$BUILD_VIEW_RAW" | grep -o '{.*}' | head -n 1 || echo "{}")
-          ARTIFACT_URL=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data.artifacts?.buildUrl || ''); } catch(e) { console.log(''); }" "$BUILD_VIEW_JSON")
-          
-          if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ] && [ "$ARTIFACT_URL" != "undefined" ]; then
-            echo "Downloading real APK from $ARTIFACT_URL..."
-            mkdir -p release_output
-            curl -L -o release_output/KINI-Chat.apk "$ARTIFACT_URL"
-          fi
-          
-          if [ ! -f "release_output/KINI-Chat.apk" ] || [ $(wc -c < "release_output/KINI-Chat.apk") -lt 1000 ]; then
-            echo "Error: APK not downloaded or file too small!"
-            exit 1
-          fi
-          echo "Successfully downloaded APK file ($(wc -c < "release_output/KINI-Chat.apk") bytes)."
+          echo "APK successfully built: $(ls -la release_output/KINI-Chat.apk)"
 
       - name: Upload to GitHub Releases
         uses: softprops/action-gh-release@v1
         with:
           files: release_output/KINI-Chat.apk
           tag_name: v1.0.${{ github.run_number }}
-          name: KINI Chat v1.0.${{ github.run_number }} (APK chính thức)
+          name: KINI Chat v1.0.${{ github.run_number }} (Native APK)
           body: |
-            🚀 **Phiên bản APK đầy đủ (chính thức từ EAS Cloud)**
-            - Tệp `.apk` thực sự (~80-90MB) đã được tải về từ Expo Cloud và đính kèm bên dưới. Bạn có thể cài đặt trực tiếp lên điện thoại Android!
+            🚀 **Phiên bản APK Native build trực tiếp trên GitHub Actions**
+            - Không cần qua EAS Cloud.
+            - Tệp `.apk` đã sẵn sàng để cài đặt trực tiếp trên Android!
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
