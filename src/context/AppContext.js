@@ -5,40 +5,27 @@ export const AppContext = createContext();
 const initialChats = [
   {
     id: '1',
-    name: 'Kini Assistant',
-    avatar: 'KA',
+    name: 'KINI AI',
+    avatar: 'AI',
     isOnline: true,
     unreadCount: 1,
-    messages: [{ id: '101', senderId: '1', text: 'Chào mừng bạn đến với Kini - ứng dụng nhắn tin phong cách Zalo! 🎉 Nhắn tin cho mình nhé!', timestamp: '15:30' }]
-  },
-  {
-    id: '2',
-    name: 'Nguyễn Văn Nam',
-    avatar: 'VN',
-    isOnline: true,
-    unreadCount: 0,
-    messages: [
-      { id: '201', senderId: '2', text: 'Chiều nay làm cốc bia giải mỏi không ông ơi? 🍺', timestamp: '14:20' },
-      { id: '202', senderId: 'me', text: 'Hợp lý đấy!', timestamp: '14:22' }
-    ]
+    messages: [{ id: '101', senderId: '1', text: 'Xin chào! Tôi là KINI AI. Tôi có thể giúp gì cho bạn hôm nay? 🤖✨', timestamp: '15:30' }]
   }
 ];
 
 const initialContacts = [
-  { id: '1', name: 'Kini Assistant', phone: '0901234567', avatar: 'KA', isOnline: true },
-  { id: '2', name: 'Nguyễn Văn Nam', phone: '0912345678', avatar: 'VN', isOnline: true },
-  { id: '3', name: 'Trần Thị Lan', phone: '0987654321', avatar: 'TL', isOnline: false, lastSeen: 'Vừa mới truy cập' }
+  { id: '1', name: 'KINI AI', phone: '0900000000', avatar: 'AI', isOnline: true }
 ];
 
 const initialPosts = [
   {
     id: '1',
-    author: 'Kini Assistant',
-    avatar: 'KA',
+    author: 'KINI AI',
+    avatar: 'AI',
     timestamp: '2 giờ trước',
-    content: '🚀 KINI CHÍNH THỨC RA MẮT BẢN THỬ NGHIỆM! \n\nỨng dụng chat di động siêu mượt mà, bảo mật tuyệt đối, mượt như Zalo! Trải nghiệm và chia sẻ góp ý nhé! ❤️📱',
-    likes: ['2'],
-    comments: [{ id: '101', author: 'Nguyễn Văn Nam', text: 'App chạy mượt thật sự! UI quá đẹp.', timestamp: '1 giờ trước' }]
+    content: '🚀 KINI CHÍNH THỨC RA MẮT BẢN THỬ NGHIỆM! \n\nỨng dụng chat di động siêu mượt mà với trợ lý KINI AI thông minh! Trải nghiệm và chia sẻ góp ý nhé! ❤️📱',
+    likes: [],
+    comments: []
   }
 ];
 
@@ -61,6 +48,11 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
 
+  const resetPassword = (phone, newPassword) => {
+    if (!phone || !newPassword) return { success: false, message: 'Nhập đủ thông tin!' };
+    return { success: true, message: 'Đặt lại mật khẩu thành công! Hãy đăng nhập lại bằng mật khẩu mới.' };
+  };
+
   const logout = () => setUser(null);
 
   const sendMessage = (chatId, text) => {
@@ -73,15 +65,16 @@ export const AppProvider = ({ children }) => {
 
     setTimeout(() => {
       setIsTyping(prev => ({ ...prev, [chatId]: false }));
-      let reply = 'Cảm ơn bạn đã nhắn tin cho Kini! Mình sẽ trả lời sớm nhất có thể. 👍';
+      let reply = `KINI AI đã ghi nhận câu hỏi: "${text}". Tôi luôn sẵn sàng hỗ trợ bạn bất cứ lúc nào! 🤖💡`;
       const clean = text.toLowerCase();
-      if (chatId === '1') {
-        if (clean.includes('bạn là ai') || clean.includes('tên gì')) reply = 'Mình là Trợ lý Kini! 🤖';
-        else if (clean.includes('tính năng') || clean.includes('chức năng')) reply = 'Kini hỗ trợ Nhắn tin thời gian thực, Danh bạ, Nhật ký đăng bài, thả tim, bình luận và Profile cá nhân!';
-        else if (clean.includes('chào') || clean.includes('hi') || clean.includes('hello')) reply = 'Chào bạn nha! Rất vui được trò chuyện với bạn.';
-      } else if (chatId === '2') {
-        if (clean.includes('nhậu') || clean.includes('bia')) reply = 'Chốt kèo 6h chiều nhé! Quán lòng nướng cũ ông ơi! 🍻';
-        else reply = 'Tôi đang bận xíu, lát tôi nhắn tin lại sau nhé!';
+      if (clean.includes('bạn là ai') || clean.includes('tên gì')) {
+        reply = 'Tôi là KINI AI - Trợ lý thông minh tích hợp trong ứng dụng KINI! 🤖✨';
+      } else if (clean.includes('thời tiết') || clean.includes('nắng') || clean.includes('mưa')) {
+        reply = 'Hôm nay thời tiết rất đẹp để trải nghiệm ứng dụng KINI đấy bạn nhé! ☀️';
+      } else if (clean.includes('chào') || clean.includes('hi') || clean.includes('hello')) {
+        reply = 'Xin chào bạn! Tôi có thể giúp gì cho bạn hôm nay? 👋';
+      } else if (clean.includes('tính năng') || clean.includes('làm được gì')) {
+        reply = 'Tôi có thể trả lời câu hỏi, trò chuyện, hỗ trợ tra cứu thông tin và đồng hành cùng bạn trên KINI! 🚀';
       }
 
       const replyMsg = { id: (Date.now() + 1).toString(), senderId: chatId, text: reply, timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) };
@@ -117,7 +110,7 @@ export const AppProvider = ({ children }) => {
   };
 
   return (
-    <AppContext.Provider value={{ user, chats, contacts, posts, isTyping, login, register, logout, sendMessage, clearUnread, addPost, toggleLikePost, addComment, addContact }}>
+    <AppContext.Provider value={{ user, chats, contacts, posts, isTyping, login, register, resetPassword, logout, sendMessage, clearUnread, addPost, toggleLikePost, addComment, addContact }}>
       {children}
     </AppContext.Provider>
   );

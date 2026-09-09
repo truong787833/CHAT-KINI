@@ -4,11 +4,20 @@ import { AppContext } from '../context/AppContext';
 import colors from '../theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 
+import React, { useState, useContext } from 'react';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { AppContext } from '../context/AppContext';
+import colors from '../theme/colors';
+import { Ionicons } from '@expo/vector-icons';
+
 export default function LoginScreen({ navigation }) {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [secureText, setSecureText] = useState(true);
-  const { login } = useContext(AppContext);
+  const [isForgotMode, setIsForgotMode] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const { login, resetPassword } = useContext(AppContext);
 
   const handleLogin = () => {
     const result = login(phone, password);
@@ -16,6 +25,75 @@ export default function LoginScreen({ navigation }) {
       Alert.alert('Thông báo', result.message);
     }
   };
+
+  const handleForgot = () => {
+    if (!forgotPhone || !newPassword) {
+      Alert.alert('Thông báo', 'Vui lòng nhập số điện thoại và mật khẩu mới!');
+      return;
+    }
+    const result = resetPassword(forgotPhone, newPassword);
+    Alert.alert('Thông báo', result.message);
+    if (result.success) {
+      setIsForgotMode(false);
+      setPhone(forgotPhone);
+      setNewPassword('');
+    }
+  };
+
+  if (isForgotMode) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
+            <View style={styles.header}>
+              <Text style={styles.logoText}>Kini</Text>
+              <Text style={styles.tagline}>Khôi phục mật khẩu</Text>
+            </View>
+
+            <View style={styles.form}>
+              <Text style={styles.title}>QUÊN MẬT KHẨU</Text>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="phone-portrait-outline" size={20} color={colors.textGray} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhập số điện thoại đăng ký"
+                  value={forgotPhone}
+                  onChangeText={setForgotPhone}
+                  keyboardType="phone-pad"
+                  placeholderTextColor={colors.textGray}
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color={colors.textGray} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nhập mật khẩu mới"
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={secureText}
+                  placeholderTextColor={colors.textGray}
+                />
+                <TouchableOpacity onPress={() => setSecureText(!secureText)} style={styles.eyeIcon}>
+                  <Ionicons name={secureText ? "eye-off-outline" : "eye-outline"} size={20} color={colors.textGray} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity style={styles.loginBtn} onPress={handleForgot}>
+                <Text style={styles.loginBtnText}>ĐẶT LẠI MẬT KHẨU</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.loginBtn, { backgroundColor: colors.textGray, marginTop: 12 }]} onPress={() => setIsForgotMode(false)}>
+                <Text style={styles.loginBtnText}>QUAY LẠI ĐĂNG NHẬP</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+
 
   return (
     <SafeAreaView style={styles.container}>
@@ -59,7 +137,7 @@ export default function LoginScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.forgotBtn}>
+            <TouchableOpacity style={styles.forgotBtn} onPress={() => setIsForgotMode(true)}>
               <Text style={styles.forgotText}>Quên mật khẩu?</Text>
             </TouchableOpacity>
 
