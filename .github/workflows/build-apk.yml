@@ -18,23 +18,22 @@ jobs:
       with:
         node-version: 18
 
-    - name: Install EAS CLI globally
-      run: npm install -g eas-cli
+    - name: Setup Expo
+      uses: expo/expo-github-action@v8
+      with:
+        expo-version: latest
+        eas-version: latest
+        token: ${{ secrets.EXPO_TOKEN }}
 
-    - name: Install project dependencies
+    - name: Install dependencies
       run: npm install
-
-    - name: Configure EAS Project
-      env:
-        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      run: |
-        eas project:init --force --non-interactive || true
 
     - name: Build on EAS
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       run: |
-        eas build --platform android --profile preview --non-interactive --no-git-status
+        eas build --platform android --profile preview --non-interactive
+
 
 
 
