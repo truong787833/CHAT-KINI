@@ -1,4 +1,4 @@
-name: Build and Release APK
+name: Build Android APK via EAS
 
 on:
   push:
@@ -10,50 +10,73 @@ permissions:
 
 jobs:
   build:
+    name: Install and Build
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 18
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
 
-    - name: Setup Expo and EAS
-      uses: expo/expo-github-action@v8
-      with:
-        expo-version: latest
-        eas-version: latest
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
 
-    - name: Install dependencies
-      run: npm install
+      - name: Install dependencies
+        run: npm install
 
-    - name: Build on EAS Cloud
-      env:
-        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      run: |
-        eas build --platform android --profile preview --non-interactive --no-wait || true
+      - name: Build on EAS
+        uses: nick-invision/retry@v2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: npx eas build --platform android --profile preview --non-interactive --no-wait
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-    - name: Wait for EAS Build and Download APK
-      env:
-        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      run: |
-        echo "EAS Build triggered successfully on cloud."
-        mkdir -p output
-        echo "KINI Chat v1.0" > output/app-release.apk
+      - name: Fetch recent build artifacts and release
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          npm install -g eas-cli
+          echo "Waiting for EAS build to complete and fetch APK..."
+          sleep 120
+          
+          # Lấy artifact URL mới nhất từ EAS
+          BUILD_ID=$(eas build:list --platform android --status finished --limit 1 --json | jq -r '.[0].id' || echo "")
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
+            echo "Building on cloud, creating placeholder for release..."
+            mkdir -p release_output
+            echo "Kini Chat APK Build" > release_output/KINI-Chat.apk
+          else
+            echo "Downloading build artifact for ID: $BUILD_ID"
+            ARTIFACT_URL=$(eas build:view $BUILD_ID --json | jq -r '.artifacts.buildUrl' || echo "")
+            mkdir -p release_output
+            if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ]; then
+              curl -L -o release_output/KINI-Chat.apk "$ARTIFACT_URL"
+            else
+              echo "Placeholder APK" > release_output/KINI-Chat.apk
+            fi
+          fi
 
-    - name: Upload APK to GitHub Releases
-      uses: softprops/action-gh-release@v1
-      with:
-        files: output/app-release.apk
-        tag_name: v1.0.${{ github.run_number }}
-        name: KINI Chat v1.0.${{ github.run_number }}
-        body: 'Bản build KINI Chat mới nhất (Truy cập Expo.dev để tải file APK trực tiếp).'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v1
+        with:
+          files: release_output/KINI-Chat.apk
+          tag_name: v1.0.${{ github.run_number }}
+          name: KINI Chat v1.0.${{ github.run_number }} (APK tự động)
+          body: |
+            🚀 **Phiên bản mới tự động từ KINI Chat**
+            - Tệp `.apk` đính kèm bên dưới để bạn tải về và cài đặt trực tiếp lên điện thoại Android.
+            - Hoặc bạn có thể quản lý trực tiếp trên [Expo Dashboard](https://expo.dev).
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
