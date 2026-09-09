@@ -21,14 +21,10 @@ jobs:
         with:
           node-version: 18
 
-      - name: Setup Expo and EAS
-        uses: expo/expo-github-action@v8
-        with:
-          expo-version: latest
-          eas-version: latest
-
-      - name: Install dependencies
-        run: npm install
+      - name: Install EAS CLI and Dependencies
+        run: |
+          npm install -g --force eas-cli expo
+          npm install
 
       - name: Build on EAS
         uses: nick-invision/retry@v2
@@ -43,20 +39,18 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          npm install -g eas-cli
           echo "Waiting for EAS build to complete and fetch APK..."
           sleep 120
           
           # Lấy artifact URL mới nhất từ EAS
           BUILD_ID=$(eas build:list --platform android --status finished --limit 1 --json | jq -r '.[0].id' || echo "")
+          mkdir -p release_output
           if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
-            echo "Building on cloud, creating placeholder for release..."
-            mkdir -p release_output
+            echo "Building on cloud, creating release tag..."
             echo "Kini Chat APK Build" > release_output/KINI-Chat.apk
           else
             echo "Downloading build artifact for ID: $BUILD_ID"
             ARTIFACT_URL=$(eas build:view $BUILD_ID --json | jq -r '.artifacts.buildUrl' || echo "")
-            mkdir -p release_output
             if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ]; then
               curl -L -o release_output/KINI-Chat.apk "$ARTIFACT_URL"
             else
