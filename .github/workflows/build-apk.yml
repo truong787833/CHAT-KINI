@@ -38,18 +38,17 @@ jobs:
       - name: Generate Native Android Folder
         run: npx expo prebuild --platform android --clean
 
-      - name: Build Debug/Release APK with Gradle
+      - name: Build Release APK with Gradle
         working-directory: ./android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
       - name: Prepare APK Artifact
         run: |
           mkdir -p release_output
-          # Copy debug APK (or assembleRelease if signing key is provided)
-          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
-            cp android/app/build/outputs/apk/debug/app-debug.apk release_output/KINI-Chat.apk
+          if [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk release_output/KINI-Chat.apk
           elif [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
             cp android/app/build/outputs/apk/release/app-release-unsigned.apk release_output/KINI-Chat.apk
           else
@@ -67,13 +66,14 @@ jobs:
         with:
           files: release_output/KINI-Chat.apk
           tag_name: v1.0.${{ github.run_number }}
-          name: KINI Chat v1.0.${{ github.run_number }} (Native APK)
+          name: KINI Chat v1.0.${{ github.run_number }} (Release APK)
           body: |
-            🚀 **Phiên bản APK Native build trực tiếp trên GitHub Actions**
-            - Không cần qua EAS Cloud.
-            - Tệp `.apk` đã sẵn sàng để cài đặt trực tiếp trên Android!
+            🚀 **Phiên bản Release APK chuẩn sản xuất (Production)**
+            - Build trực tiếp qua Native Gradle (`assembleRelease`).
+            - Hoạt động mượt mà và tối ưu hóa đầy đủ cho Android!
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
