@@ -21,29 +21,32 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install EAS CLI and Dependencies
-        run: |
-          npm install -g --force eas-cli expo jq
-          npm install
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
       - name: Build on EAS and Download APK
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
           echo "Starting synchronous EAS build..."
-          # Chạy build và chờ kết thúc (hoặc lấy build mới nhất đang queue / vừa finish)
           npx eas build --platform android --profile preview --non-interactive --no-wait
           
           echo "Waiting for build to finish on Expo Cloud (checking every 30s)..."
-          for i in {1..30}; do
+          for i in {1..40}; do
             sleep 30
-            BUILD_ID=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].id' || echo "")
-            STATUS=$(eas build:view $BUILD_ID --json | jq -r '.status' || echo "")
+            
+            # Lấy thông tin build dưới dạng text hoặc phân tích bằng node/python thay vì jq thuần để tránh lỗi module
+            BUILD_JSON=$(eas build:list --platform android --limit 1 --json || echo "[]")
+            BUILD_ID=$(node -e "const data = JSON.parse(process.argv[1]); console.log(data[0]?.id || '');" "$BUILD_JSON")
+            STATUS=$(node -e "const data = JSON.parse(process.argv[1]); console.log(data[0]?.status || '');" "$BUILD_JSON")
+            
             echo "Attempt $i: Build ID $BUILD_ID status is $STATUS"
             
             if [ "$STATUS" = "finished" ]; then
-              ARTIFACT_URL=$(eas build:view $BUILD_ID --json | jq -r '.artifacts.buildUrl' || echo "")
-              if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ]; then
+              BUILD_VIEW_JSON=$(eas build:view "$BUILD_ID" --json || echo "{}")
+              ARTIFACT_URL=$(node -e "const data = JSON.parse(process.argv[1]); console.log(data.artifacts?.buildUrl || '');" "$BUILD_VIEW_JSON")
+              
+              if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ] && [ "$ARTIFACT_URL" != "undefined" ]; then
                 echo "Downloading real APK from $ARTIFACT_URL..."
                 mkdir -p release_output
                 curl -L -o release_output/KINI-Chat.apk "$ARTIFACT_URL"
