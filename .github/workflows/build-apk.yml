@@ -28,23 +28,31 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "Starting synchronous EAS build..."
+          echo "Triggering EAS build..."
           npx eas build --platform android --profile preview --non-interactive --no-wait
           
           echo "Waiting for build to finish on Expo Cloud (checking every 30s)..."
           for i in {1..40}; do
             sleep 30
             
-            # Lấy thông tin build dưới dạng text hoặc phân tích bằng node/python thay vì jq thuần để tránh lỗi module
-            BUILD_JSON=$(eas build:list --platform android --limit 1 --json || echo "[]")
-            BUILD_ID=$(node -e "const data = JSON.parse(process.argv[1]); console.log(data[0]?.id || '');" "$BUILD_JSON")
-            STATUS=$(node -e "const data = JSON.parse(process.argv[1]); console.log(data[0]?.status || '');" "$BUILD_JSON")
+            # Lấy danh sách build và kiểm tra an toàn nếu không phải JSON
+            BUILD_JSON=$(eas build:list --platform android --limit 1 --json 2>/dev/null || echo "[]")
+            
+            # Kiểm tra xem BUILD_JSON có bắt đầu bằng '[' hay không
+            FIRST_CHAR=$(echo "$BUILD_JSON" | head -c 1)
+            if [ "$FIRST_CHAR" != "[" ]; then
+              echo "Raw output not JSON yet: $BUILD_JSON"
+              continue
+            fi
+            
+            BUILD_ID=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.id || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
+            STATUS=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.status || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
             
             echo "Attempt $i: Build ID $BUILD_ID status is $STATUS"
             
-            if [ "$STATUS" = "finished" ]; then
-              BUILD_VIEW_JSON=$(eas build:view "$BUILD_ID" --json || echo "{}")
-              ARTIFACT_URL=$(node -e "const data = JSON.parse(process.argv[1]); console.log(data.artifacts?.buildUrl || '');" "$BUILD_VIEW_JSON")
+            if [ "$STATUS" = "finished" ] && [ -n "$BUILD_ID" ]; then
+              BUILD_VIEW_JSON=$(eas build:view "$BUILD_ID" --json 2>/dev/null || echo "{}")
+              ARTIFACT_URL=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data.artifacts?.buildUrl || ''); } catch(e) { console.log(''); }" "$BUILD_VIEW_JSON")
               
               if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ] && [ "$ARTIFACT_URL" != "undefined" ]; then
                 echo "Downloading real APK from $ARTIFACT_URL..."
