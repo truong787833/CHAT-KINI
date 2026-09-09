@@ -30,38 +30,30 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: |
-          echo "Triggering EAS build..."
-          npx eas build --platform android --profile preview --non-interactive --no-wait
+          echo "Triggering EAS build synchronously (--wait)..."
+          # Sử dụng --wait để EAS tự động chạy và giữ kết nối đến khi build xong hoàn toàn!
+          npx eas build --platform android --profile preview --non-interactive --wait
           
-          echo "Waiting for build to finish on Expo Cloud (checking every 30s)..."
-          for i in {1..40}; do
-            sleep 30
+          echo "Build finished! Fetching latest build details..."
+          BUILD_RAW=$(eas build:list --platform android --limit 1 --json 2>/dev/null || echo "[]")
+          BUILD_JSON=$(echo "$BUILD_RAW" | grep -o '\[.*\]' || echo "[]")
+          
+          BUILD_ID=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.id || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
+          STATUS=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.status || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
+          
+          echo "Latest Build ID: $BUILD_ID, Status: $STATUS"
+          
+          if [ "$STATUS" = "finished" ] && [ -n "$BUILD_ID" ]; then
+            BUILD_VIEW_RAW=$(eas build:view "$BUILD_ID" --json 2>/dev/null || echo "{}")
+            BUILD_VIEW_JSON=$(echo "$BUILD_VIEW_RAW" | grep -o '{.*}' | head -n 1 || echo "{}")
+            ARTIFACT_URL=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data.artifacts?.buildUrl || ''); } catch(e) { console.log(''); }" "$BUILD_VIEW_JSON")
             
-            # Lấy danh sách build, lọc bỏ các dòng log thừa chỉ lấy đoạn JSON bắt đầu bằng '['
-            BUILD_RAW=$(eas build:list --platform android --limit 1 --json 2>/dev/null || echo "[]")
-            BUILD_JSON=$(echo "$BUILD_RAW" | grep -o '\[.*\]' || echo "[]")
-            
-            BUILD_ID=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.id || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
-            STATUS=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data[0]?.status || ''); } catch(e) { console.log(''); }" "$BUILD_JSON")
-            
-            echo "Attempt $i: Build ID $BUILD_ID status is $STATUS"
-            
-            if [ "$STATUS" = "finished" ] && [ -n "$BUILD_ID" ]; then
-              BUILD_VIEW_RAW=$(eas build:view "$BUILD_ID" --json 2>/dev/null || echo "{}")
-              BUILD_VIEW_JSON=$(echo "$BUILD_VIEW_RAW" | grep -o '{.*}' | head -n 1 || echo "{}")
-              ARTIFACT_URL=$(node -e "try { const data = JSON.parse(process.argv[1]); console.log(data.artifacts?.buildUrl || ''); } catch(e) { console.log(''); }" "$BUILD_VIEW_JSON")
-              
-              if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ] && [ "$ARTIFACT_URL" != "undefined" ]; then
-                echo "Downloading real APK from $ARTIFACT_URL..."
-                mkdir -p release_output
-                curl -L -o release_output/KINI-Chat.apk "$ARTIFACT_URL"
-                break
-              fi
-            elif [ "$STATUS" = "errored" ] || [ "$STATUS" = "canceled" ]; then
-              echo "Build failed with status $STATUS"
-              exit 1
+            if [ -n "$ARTIFACT_URL" ] && [ "$ARTIFACT_URL" != "null" ] && [ "$ARTIFACT_URL" != "undefined" ]; then
+              echo "Downloading real APK from $ARTIFACT_URL..."
+              mkdir -p release_output
+              curl -L -o release_output/KINI-Chat.apk "$ARTIFACT_URL"
             fi
-          done
+          fi
           
           if [ ! -f "release_output/KINI-Chat.apk" ] || [ $(wc -c < "release_output/KINI-Chat.apk") -lt 1000 ]; then
             echo "Error: APK not downloaded or file too small!"
