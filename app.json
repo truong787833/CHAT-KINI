@@ -1,10 +1,16 @@
 {
   "expo": {
-    "name": "Kini",
+    "name": "Kini Chat",
     "slug": "kini-chat",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0068FF"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -17,7 +23,11 @@
       }
     },
     "android": {
-      "package": "com.truongnn.kinichat"
+      "package": "com.truongnn.kinichat",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0068FF"
+      }
     }
   }
 }
