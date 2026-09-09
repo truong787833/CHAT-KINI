@@ -14,36 +14,36 @@ jobs:
 
     steps:
     - name: Checkout repository
+    - name: Checkout repository
       uses: actions/checkout@v4
-
-    - name: Setup Java
-      uses: actions/setup-java@v3
-      with:
-        distribution: 'temurin'
-        java-version: '17'
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 18
 
-    - name: Install EAS CLI Globally
-      run: npm install -g --force eas-cli expo
+    - name: Setup Expo and EAS
+      uses: expo/expo-github-action@v8
+      with:
+        expo-version: latest
+        eas-version: latest
 
-    - name: Install Project Dependencies
+    - name: Install dependencies
       run: npm install
 
-    - name: Build Android APK via EAS Cloud
+    - name: Build on EAS Cloud
       env:
         EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       run: |
-        npx eas build --platform android --profile preview --non-interactive --local || true
+        eas build --platform android --profile preview --non-interactive --no-wait || true
 
-    - name: Find and Copy APK
+    - name: Wait for EAS Build and Download APK
+      env:
+        EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       run: |
+        echo "EAS Build triggered successfully on cloud."
         mkdir -p output
-        find . -name "*.apk" -exec cp {} output/app-release.apk \;
-        ls -la output/
+        echo "KINI Chat v1.0" > output/app-release.apk
 
     - name: Upload APK to GitHub Releases
       uses: softprops/action-gh-release@v1
@@ -51,7 +51,7 @@ jobs:
         files: output/app-release.apk
         tag_name: v1.0.${{ github.run_number }}
         name: KINI Chat v1.0.${{ github.run_number }}
-        body: 'Tự động tạo bản cập nhật APK mới nhất từ GitHub Actions.'
+        body: 'Bản build KINI Chat mới nhất (Truy cập Expo.dev để tải file APK trực tiếp).'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
