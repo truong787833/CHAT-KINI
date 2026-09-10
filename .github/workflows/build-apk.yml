@@ -20,7 +20,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Cache Gradle packages
@@ -45,14 +45,13 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Generate Native Android Folder
-        run: npx expo prebuild --platform android --clean
-
       - name: Build Official Release APK with Gradle
         working-directory: ./android
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Prepare APK Artifact
         run: |
@@ -84,6 +83,7 @@ jobs:
             - Hoạt động mượt mà, khởi động tức thì, cài đặt trực tiếp không bị văng.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
