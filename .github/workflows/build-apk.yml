@@ -45,15 +45,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Setup App Assets
-        run: |
-          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-          mkdir -p android/app/src/main/res/drawable
-          cp assets/icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-          cp assets/icon.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
-          cp assets/splash.png android/app/src/main/res/drawable/splashscreen_logo.png
-
-
       - name: Build Official Release APK with Gradle
         working-directory: ./android
         env:
